@@ -19,7 +19,7 @@ Edit `.env` and set `AI_API_KEY`. For an OpenAI-compatible provider, set `AI_BAS
 Run:
 
 ```powershell
-python app.py
+uvicorn main:application --host 0.0.0.0 --port 8000
 ```
 
 Endpoint:
@@ -33,7 +33,7 @@ Health:
 1. Push this folder to a new private GitHub repository.
 2. In Render, create a Web Service from that repository.
 3. Build command: `pip install -r requirements.txt`
-4. Start command: `gunicorn --workers 2 --threads 4 --timeout 60 app:app`
+4. Start command: `uvicorn main:application --host 0.0.0.0 --port $PORT`
 5. Add environment variables:
    - `AI_BASE_URL`
    - `AI_API_KEY`
@@ -52,7 +52,12 @@ Health:
 
 ## Known implementation notes to review before submission
 
-- The service uses SQLite and expects a persistent Render disk. If your Render plan does not support persistent disks, use a managed PostgreSQL database and adapt the storage layer.
+- The service uses SQLite and expects a persistent Render disk. The included Blueprint uses a paid Starter instance because Render persistent disks are not available on the free instance tier. If you use a free instance, move storage to a managed PostgreSQL database and adapt the storage layer.
 - AI output is schema-validated but semantic correctness depends on the model and prompt. The hidden audit cases can expose weak reasoning; inspect model outputs and test with synthetic cases.
 - The first uncached batch is sent in one model call. Keep the provider timeout below the grader's 55-second request deadline.
 - The service intentionally fails closed (503) if the model is unavailable; it does not fabricate proposals.
+
+
+## Uvicorn deployment
+
+This project is Flask (WSGI), so `main.py` wraps the Flask app with `asgiref.wsgi.WsgiToAsgi`. Render starts it with Uvicorn using `main:application`. Do not use `uvicorn main:app`; the exported ASGI variable is named `application`.
